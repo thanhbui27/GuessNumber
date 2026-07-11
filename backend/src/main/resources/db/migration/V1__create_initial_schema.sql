@@ -7,8 +7,8 @@ CREATE TABLE users (
     turns INT NOT NULL DEFAULT 5,
     role VARCHAR(20) NOT NULL DEFAULT 'USER',
     version BIGINT NOT NULL DEFAULT 0,
-    created_at DATETIME(6) NOT NULL,
-    updated_at DATETIME(6) NOT NULL,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
     CONSTRAINT uk_users_username UNIQUE (username),
     CONSTRAINT uk_users_email UNIQUE (email),
     CONSTRAINT chk_users_score CHECK (score >= 0),
@@ -23,7 +23,7 @@ CREATE TABLE guess_history (
     result VARCHAR(20) NOT NULL,
     score_after INT NOT NULL,
     turns_after INT NOT NULL,
-    created_at DATETIME(6) NOT NULL,
+    created_at DATETIME NOT NULL,
     CONSTRAINT fk_guess_history_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT chk_guess_history_guessed_number CHECK (guessed_number BETWEEN 1 AND 5),
     CONSTRAINT chk_guess_history_server_number CHECK (server_number BETWEEN 1 AND 5)
@@ -37,7 +37,7 @@ CREATE TABLE purchase_history (
     provider VARCHAR(30) NOT NULL DEFAULT 'DEMO',
     transaction_code VARCHAR(100),
     status VARCHAR(30) NOT NULL,
-    created_at DATETIME(6) NOT NULL,
+    created_at DATETIME NOT NULL,
     CONSTRAINT fk_purchase_history_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

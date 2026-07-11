@@ -52,10 +52,10 @@ public class User {
     @Column(nullable = false)
     private Long version;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at", nullable = false, columnDefinition = "DATETIME")
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "updated_at", nullable = false, columnDefinition = "DATETIME")
     private LocalDateTime updatedAt;
 
     public User(String username, String email, String password, Integer turns, Role role) {

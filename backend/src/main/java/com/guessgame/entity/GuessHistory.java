@@ -50,7 +50,7 @@ public class GuessHistory {
     @Column(name = "turns_after", nullable = false)
     private Integer turnsAfter;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at", nullable = false, columnDefinition = "DATETIME")
     private LocalDateTime createdAt;
 
     public GuessHistory(User user, int guessedNumber, int serverNumber, GuessResult result, int scoreAfter, int turnsAfter) {

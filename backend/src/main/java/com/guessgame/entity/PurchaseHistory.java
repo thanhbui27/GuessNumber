@@ -53,7 +53,7 @@ public class PurchaseHistory {
     @Column(nullable = false, length = 30)
     private PaymentStatus status;
 
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at", nullable = false, columnDefinition = "DATETIME")
     private LocalDateTime createdAt;
 
     public PurchaseHistory(User user, int turnsAdded, BigDecimal amount, PaymentProvider provider, String transactionCode, PaymentStatus status) {
