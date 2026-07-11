@@ -1,0 +1,21 @@
+# Backend
+backend/target/
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Environment
+.env
+.env.local
+application-local.yml
+
+# System
+.DS_Store
+Thumbs.db
