@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Coins, History, Loader2, Medal, RotateCw, ShoppingCart, Sparkles, Trophy } from 'lucide-react';
+import { CreditCard, Coins, History, Loader2, Medal, RotateCw, ShoppingCart, Sparkles, Trophy, Wallet, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../api/endpoints';
 import { getApiError } from '../api/axiosClient';
 import { EmptyState } from '../components/EmptyState';
@@ -10,7 +11,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Pagination } from '../components/Pagination';
 import { StatCard } from '../components/StatCard';
 import { useAuthStore } from '../store/authStore';
-import type { GuessResponse } from '../types';
+import type { BuyTurnsRequest, GuessResponse } from '../types';
 import { formatCurrency, formatDateTime } from '../utils/format';
 
 const queryKeys = {
@@ -22,10 +23,12 @@ const queryKeys = {
 
 export function DashboardPage() {
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const updateUser = useAuthStore((state) => state.updateUser);
   const [guessPage, setGuessPage] = useState(0);
   const [purchasePage, setPurchasePage] = useState(0);
   const [lastGuess, setLastGuess] = useState<GuessResponse | null>(null);
+  const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
 
   const meQuery = useQuery({ queryKey: queryKeys.me, queryFn: api.me });
   const leaderboardQuery = useQuery({ queryKey: queryKeys.leaderboard, queryFn: api.leaderboard });
@@ -40,6 +43,24 @@ export function DashboardPage() {
       updateUser(meQuery.data);
     }
   }, [meQuery.data, updateUser]);
+
+  useEffect(() => {
+    const paymentStatus = searchParams.get('paymentStatus');
+    if (!paymentStatus) {
+      return;
+    }
+
+    const message = searchParams.get('message');
+    if (paymentStatus === 'success') {
+      toast.success(message || 'Thanh toan thanh cong.');
+    } else {
+      toast.error(message || 'Thanh toan khong thanh cong.');
+    }
+
+    void queryClient.invalidateQueries({ queryKey: queryKeys.me });
+    void queryClient.invalidateQueries({ queryKey: ['purchase-history'] });
+    setSearchParams({}, { replace: true });
+  }, [queryClient, searchParams, setSearchParams]);
 
   const guessMutation = useMutation({
     mutationFn: api.guess,
@@ -58,12 +79,22 @@ export function DashboardPage() {
   const buyTurnsMutation = useMutation({
     mutationFn: api.buyTurns,
     onSuccess: (data) => {
+      if (data.paymentUrl) {
+        toast.success(data.message);
+        window.location.assign(data.paymentUrl);
+        return;
+      }
       toast.success(data.message);
+      setIsBuyModalOpen(false);
       void queryClient.invalidateQueries({ queryKey: queryKeys.me });
       void queryClient.invalidateQueries({ queryKey: ['purchase-history'] });
     },
     onError: (error) => toast.error(getApiError(error).message)
   });
+
+  const handleBuyTurns = (provider: BuyTurnsRequest['provider']) => {
+    buyTurnsMutation.mutate({ provider });
+  };
 
   if (meQuery.isLoading) {
     return <LoadingSpinner label="Dang tai dashboard..." />;
@@ -94,7 +125,7 @@ export function DashboardPage() {
             <button
               type="button"
               className="secondary-button"
-              onClick={() => buyTurnsMutation.mutate()}
+              onClick={() => setIsBuyModalOpen(true)}
               disabled={buyTurnsMutation.isPending}
             >
               {buyTurnsMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <ShoppingCart className="h-4 w-4" aria-hidden="true" />}
@@ -141,6 +172,60 @@ export function DashboardPage() {
 
         <LeaderboardPanel isLoading={leaderboardQuery.isLoading} isError={leaderboardQuery.isError} onRetry={() => void leaderboardQuery.refetch()} items={leaderboardQuery.data?.items ?? []} />
       </section>
+
+      {isBuyModalOpen ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 px-4 py-6">
+          <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+              <div>
+                <h2 className="text-lg font-bold text-slate-950">Chon cach mua luot</h2>
+                <p className="text-sm text-slate-500">Moi giao dich cong them 5 luot.</p>
+              </div>
+              <button
+                type="button"
+                className="grid h-9 w-9 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                onClick={() => setIsBuyModalOpen(false)}
+                disabled={buyTurnsMutation.isPending}
+                aria-label="Dong popup"
+              >
+                <X className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="grid gap-3 p-5">
+              <button
+                type="button"
+                className="flex items-center gap-4 rounded-lg border border-slate-200 p-4 text-left transition hover:border-sky-300 hover:bg-sky-50 focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => handleBuyTurns('VNPAY')}
+                disabled={buyTurnsMutation.isPending}
+              >
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-sky-100 text-sky-700">
+                  {buyTurnsMutation.isPending && buyTurnsMutation.variables?.provider === 'VNPAY' ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> : <CreditCard className="h-5 w-5" aria-hidden="true" />}
+                </span>
+                <span className="min-w-0">
+                  <span className="block font-bold text-slate-950">VNPay</span>
+                  <span className="block text-sm text-slate-600">Thanh toan qua cong VNPay sandbox.</span>
+                </span>
+              </button>
+
+              <button
+                type="button"
+                className="flex items-center gap-4 rounded-lg border border-slate-200 p-4 text-left transition hover:border-emerald-300 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => handleBuyTurns('DEMO')}
+                disabled={buyTurnsMutation.isPending}
+              >
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-emerald-100 text-emerald-700">
+                  {buyTurnsMutation.isPending && buyTurnsMutation.variables?.provider === 'DEMO' ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> : <Wallet className="h-5 w-5" aria-hidden="true" />}
+                </span>
+                <span className="min-w-0">
+                  <span className="block font-bold text-slate-950">Mua thuong</span>
+                  <span className="block text-sm text-slate-600">Cong luot ngay bang thanh toan demo.</span>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <section className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-lg border border-slate-200 bg-white p-5">

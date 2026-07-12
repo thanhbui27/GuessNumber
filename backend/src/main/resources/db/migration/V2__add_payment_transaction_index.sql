@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX uk_purchase_history_transaction_code ON purchase_history(transaction_code);

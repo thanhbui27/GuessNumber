@@ -3,6 +3,7 @@ package com.guessgame.config;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
+import java.math.BigDecimal;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
@@ -13,6 +14,8 @@ public class GameProperties {
     private int defaultTurns = 5;
     @Min(1)
     private int buyTurnsAmount = 5;
+    @DecimalMin("1000")
+    private BigDecimal buyTurnsPrice = BigDecimal.valueOf(10000);
     @DecimalMin("0.0")
     @DecimalMax("1.0")
     private double winRate = 0.05;
@@ -35,6 +38,14 @@ public class GameProperties {
 
     public void setBuyTurnsAmount(int buyTurnsAmount) {
         this.buyTurnsAmount = buyTurnsAmount;
+    }
+
+    public BigDecimal getBuyTurnsPrice() {
+        return buyTurnsPrice;
+    }
+
+    public void setBuyTurnsPrice(BigDecimal buyTurnsPrice) {
+        this.buyTurnsPrice = buyTurnsPrice;
     }
 
     public double getWinRate() {

@@ -22,7 +22,7 @@ import com.guessgame.repository.UserRepository;
 import com.guessgame.service.GameOutcome;
 import com.guessgame.service.GameOutcomeGenerator;
 import com.guessgame.service.GameService;
-import com.guessgame.service.PaymentService;
+import com.guessgame.service.PaymentGatewayRegistry;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,7 +41,7 @@ class GameServiceTest {
     @Mock
     GameOutcomeGenerator outcomeGenerator;
     @Mock
-    PaymentService paymentService;
+    PaymentGatewayRegistry paymentGatewayRegistry;
     @Mock
     GameProperties gameProperties;
     @Mock

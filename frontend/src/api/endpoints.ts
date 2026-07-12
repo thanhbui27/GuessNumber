@@ -1,6 +1,8 @@
 import { axiosClient } from './axiosClient';
 import type {
   AuthResponse,
+  BuyTurnsRequest,
+  BuyTurnsResponse,
   GuessHistoryItem,
   GuessRequest,
   GuessResponse,
@@ -33,10 +35,8 @@ export const api = {
     const { data } = await axiosClient.post<GuessResponse>('/game/guess', payload);
     return data;
   },
-  buyTurns: async () => {
-    const { data } = await axiosClient.post<{ message: string; addedTurns: number; currentTurns: number; transactionCode: string }>(
-      '/game/buy-turns'
-    );
+  buyTurns: async (payload: BuyTurnsRequest) => {
+    const { data } = await axiosClient.post<BuyTurnsResponse>('/game/buy-turns', payload);
     return data;
   },
   guessHistory: async (page: number, size: number) => {

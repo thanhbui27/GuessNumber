@@ -28,7 +28,7 @@ guess-number-game/
 
 - `users`: username/email unique, password BCrypt, score, turns, role, `@Version`, created/updated timestamps.
 - `guess_history`: user id, guessed number, server number, WIN/LOSE, score/turns after play, created time.
-- `purchase_history`: user id, turns added, amount, provider, transaction code, status, created time.
+- `purchase_history`: user id, turns added, amount, provider, transaction code, status, created time. Giao dich VNPay tao ban ghi `PENDING` truoc, sau do return/IPN cap nhat `SUCCESS`/`FAILED`.
 - Index chinh: `users(score desc, created_at asc, id asc)`, history theo `(user_id, created_at desc)`.
 
 MySQL dung InnoDB de co transaction va row-level lock. Flyway tao schema, backend dung `ddl-auto=validate` trong dev/prod.
@@ -107,6 +107,32 @@ Mat khau chung: `Password@123`.
 - `GET /api/v1/game/history?page=0&size=10`
 - `GET /api/v1/game/purchase-history?page=0&size=10`
 - `GET /api/v1/leaderboard`
+- `GET /api/v1/payments/vnpay-return`
+- `GET /api/v1/payments/vnpay-ipn`
+
+## Thanh toan VNPay
+
+Man hinh mua luot cho chon 2 cach thanh toan: `Mua thuong` qua provider demo va `VNPay` qua cong thanh toan sandbox. De dung VNPay sandbox, cau hinh:
+
+```env
+GAME_BUY_TURNS_PRICE=10000
+VNPAY_TMN_CODE=your-sandbox-tmn-code
+VNPAY_HASH_SECRET=your-sandbox-hash-secret
+VNPAY_PAYMENT_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+VNPAY_RETURN_URL=http://localhost:8080/api/v1/payments/vnpay-return
+VNPAY_FRONTEND_RETURN_URL=http://localhost:5173/
+```
+
+Luong xu ly:
+
+1. Frontend mo popup va gui `POST /api/v1/game/buy-turns` voi `provider` la `DEMO` hoac `VNPAY`.
+2. Neu `DEMO`, backend cong luot ngay va ghi lich su mua.
+3. Neu `VNPAY`, backend tao giao dich `PENDING` va tra `paymentUrl`.
+4. Frontend redirect nguoi choi sang VNPay.
+5. VNPay goi return/IPN ve backend; backend verify `vnp_SecureHash`, doi trang thai giao dich va cong luot neu `vnp_ResponseCode=00` va `vnp_TransactionStatus=00`.
+6. Backend redirect nguoi choi ve frontend kem query `paymentStatus`.
+
+Trong sandbox, can cau hinh IPN URL tren merchant portal la `http://your-public-backend/api/v1/payments/vnpay-ipn`. Neu chay local va muon VNPay goi duoc IPN, can public URL qua tunnel nhu ngrok/cloudflared.
 
 ## Curl mau
 
@@ -166,7 +192,7 @@ Test hien co:
 
 - Controller chi dieu phoi, business logic nam trong service.
 - API dung DTO/record, khong tra entity va khong bao gio tra password.
-- Demo payment qua `PaymentService` de sau nay them VNPAY/MOMO/PAYPAL.
+- Payment qua `PaymentService`, ho tro demo local va VNPay redirect/return/IPN.
 - Frontend reload se lay token tu localStorage va fetch `/users/me` de dong bo user moi nhat.
 - Testcontainers dependency co san; test mac dinh dung H2 profile test vi moi truong Java hien tai khong nhan Docker socket, con runtime dev/prod van dung MySQL/Flyway/InnoDB.
 

@@ -10,6 +10,7 @@ import com.guessgame.dto.game.PurchaseHistoryResponse;
 import com.guessgame.entity.GuessHistory;
 import com.guessgame.entity.PurchaseHistory;
 import com.guessgame.entity.User;
+import com.guessgame.enums.PaymentProvider;
 import com.guessgame.enums.PaymentStatus;
 import com.guessgame.exception.ApiException;
 import com.guessgame.mapper.HistoryMapper;
@@ -31,7 +32,7 @@ public class GameService {
     private final GuessHistoryRepository guessHistoryRepository;
     private final PurchaseHistoryRepository purchaseHistoryRepository;
     private final GameOutcomeGenerator outcomeGenerator;
-    private final PaymentService paymentService;
+    private final PaymentGatewayRegistry paymentGatewayRegistry;
     private final GameProperties gameProperties;
     private final HistoryMapper historyMapper;
 
@@ -39,14 +40,14 @@ public class GameService {
                        GuessHistoryRepository guessHistoryRepository,
                        PurchaseHistoryRepository purchaseHistoryRepository,
                        GameOutcomeGenerator outcomeGenerator,
-                       PaymentService paymentService,
+                       PaymentGatewayRegistry paymentGatewayRegistry,
                        GameProperties gameProperties,
                        HistoryMapper historyMapper) {
         this.userRepository = userRepository;
         this.guessHistoryRepository = guessHistoryRepository;
         this.purchaseHistoryRepository = purchaseHistoryRepository;
         this.outcomeGenerator = outcomeGenerator;
-        this.paymentService = paymentService;
+        this.paymentGatewayRegistry = paymentGatewayRegistry;
         this.gameProperties = gameProperties;
         this.historyMapper = historyMapper;
     }
@@ -90,19 +91,22 @@ public class GameService {
     }
 
     @Transactional
-    public BuyTurnsResponse buyTurns(Long userId) {
-        PaymentResult payment = paymentService.processPayment(userId);
+    public BuyTurnsResponse buyTurns(Long userId, PaymentProvider provider, String ipAddress) {
+        int addedTurns = gameProperties.getBuyTurnsAmount();
         User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Khong tim thay user."));
+        PaymentProvider selectedProvider = provider == null ? PaymentProvider.DEMO : provider;
+        PaymentService paymentService = paymentGatewayRegistry.require(selectedProvider);
+        PaymentStartResult payment = paymentService.startPayment(userId, gameProperties.getBuyTurnsPrice(), addedTurns, ipAddress);
+
         if (payment.status() != PaymentStatus.SUCCESS) {
             purchaseHistoryRepository.save(new PurchaseHistory(user, 0, payment.amount(), payment.provider(), payment.transactionCode(), payment.status()));
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Thanh toan khong thanh cong.");
+            return new BuyTurnsResponse("Vui long hoan tat thanh toan.", 0, user.getTurns(), payment.transactionCode(), payment.paymentUrl());
         }
 
-        int addedTurns = gameProperties.getBuyTurnsAmount();
         user.setTurns(user.getTurns() + addedTurns);
         purchaseHistoryRepository.save(new PurchaseHistory(user, addedTurns, payment.amount(), payment.provider(), payment.transactionCode(), payment.status()));
-        return new BuyTurnsResponse("Mua them luot choi thanh cong.", addedTurns, user.getTurns(), payment.transactionCode());
+        return new BuyTurnsResponse("Mua them luot choi thanh cong.", addedTurns, user.getTurns(), payment.transactionCode(), payment.paymentUrl());
     }
 
     @Transactional(readOnly = true)

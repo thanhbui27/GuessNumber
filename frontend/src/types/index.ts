@@ -79,6 +79,18 @@ export interface PurchaseHistoryItem {
   createdAt: string;
 }
 
+export interface BuyTurnsResponse {
+  message: string;
+  addedTurns: number;
+  currentTurns: number;
+  transactionCode: string;
+  paymentUrl?: string | null;
+}
+
+export interface BuyTurnsRequest {
+  provider: Extract<PaymentProvider, 'DEMO' | 'VNPAY'>;
+}
+
 export interface PaginatedResponse<T> {
   content: T[];
   page: number;

@@ -4,6 +4,7 @@ public record BuyTurnsResponse(
         String message,
         int addedTurns,
         int currentTurns,
-        String transactionCode
+        String transactionCode,
+        String paymentUrl
 ) {
 }

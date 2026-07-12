@@ -2,12 +2,14 @@ package com.guessgame.controller;
 
 import com.guessgame.dto.common.PageResponse;
 import com.guessgame.dto.game.BuyTurnsResponse;
+import com.guessgame.dto.game.BuyTurnsRequest;
 import com.guessgame.dto.game.GuessHistoryResponse;
 import com.guessgame.dto.game.GuessRequest;
 import com.guessgame.dto.game.GuessResponse;
 import com.guessgame.dto.game.PurchaseHistoryResponse;
 import com.guessgame.security.UserPrincipal;
 import com.guessgame.service.GameService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -36,8 +38,12 @@ public class GameController {
     }
 
     @PostMapping("/buy-turns")
-    BuyTurnsResponse buyTurns(@AuthenticationPrincipal UserPrincipal principal) {
-        return gameService.buyTurns(principal.getId());
+    BuyTurnsResponse buyTurns(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestBody(required = false) BuyTurnsRequest buyTurnsRequest,
+            HttpServletRequest request
+    ) {
+        return gameService.buyTurns(principal.getId(), buyTurnsRequest == null ? null : buyTurnsRequest.provider(), clientIp(request));
     }
 
     @GetMapping("/history")
@@ -56,5 +62,13 @@ public class GameController {
             @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size
     ) {
         return gameService.getPurchaseHistory(principal.getId(), page, size);
+    }
+
+    private String clientIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }
